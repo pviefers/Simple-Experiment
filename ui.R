@@ -19,14 +19,14 @@ shinyUI(fluidPage(
                 hidden(
                     div(
                         id = "login_error",
-                        span("Your user name is invalid. Please check for typos and try again.", style = "color:red")
+                        span("Your username or password is invalid. Please check for typos and try again.", style = "color:red")
                     )
                 )
             ),
             
             mainPanel(
-                textInput("user", "User", ""),
-                textInput("password", "Password", ""),
+                textInput("user", "User", "123"),
+                textInput("password", "Password", "password"),
                 actionButton("login", "Login", class = "btn-primary")
             )
             
@@ -42,10 +42,11 @@ shinyUI(fluidPage(
             sidebarLayout(
             
                 sidebarPanel(
-                
+                    p("Indicate whether you think the coin that was tossed is more likely to land heads or tails based on the throws shown to you on the left."),
                     checkboxGroupInput("guess", label = h3("Your guess for this round"),
                              choices = list("Heads" = "Heads", "Tails" = "Tails"), 
                              selected = NULL),
+                    actionButton("show_more", "Show more", class = "btn-primary"),
                     actionButton("submit", "Submit", class = "btn-primary")
                 
                 ),

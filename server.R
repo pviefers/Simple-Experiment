@@ -5,6 +5,7 @@ require(dplyr)
 source('helpers.R')
 
 values <- reactiveValues(i = 1)
+
 values$df <- NULL
 
 shinyServer(
@@ -18,10 +19,11 @@ shinyServer(
             
             # Check whether user name is correct
             # Fix me: test against a session-specific password here, not username
-            user_ok <- input$password==session_password
+            pwd_ok <- input$password==session_password
+            user_ok <- is.numeric(as.numeric(input$user))
             
             # If credentials are valid push user into experiment
-            if(user_ok){
+            if(pwd_ok && user_ok){
                 shinyjs::hide("login_page")
                 shinyjs::show("form")
                 
@@ -71,10 +73,28 @@ shinyServer(
             barplot(as.matrix(plot_data[values$i,2:3]))
         })
         
-        # This renders the a table shown on the main experimental screen
-        output$table <- renderDataTable({
-            data.frame(Wurf = seq(1, n_flips), Seite= flips[, values$i])
+        reveal <- reactive({
+            n.show <- ifelse(input$show_more > 0, n_flips, n_flips/2)
+            n.show
         })
+        
+        # This renders the table shown on the main experimental screen.
+        # The functions observes whether the user has indicated to 'see more' and
+        # gradually reveals further rows of the data.
+        # TO DO: Reset reveal() for next round and disbale 'show more' prior to 
+        # 'submit', then toggleState after 'submit' was pressed.
+        observe({
+            n.show <- 1:reveal()
+            output$table <- renderDataTable({
+                data.frame(Wurf = n.show, Seite= flips[n.show, values$i])
+            },
+                options = list(paging = FALSE, 
+                           searching = FALSE,
+                           ordering = FALSE
+                           )
+            )
+        })
+        
         
         # This renders the table of choices made by a participant that is shown
         # to them on the final screen
@@ -82,7 +102,12 @@ shinyServer(
             out <- values$df[,c(1,3)]
             colnames(out) <- c("Round", "Your guess")
             out
-        })
+        }, 
+            options = list(paging = FALSE, 
+                       searching = FALSE,
+                       ordering = FALSE
+                       )
+        )
         
         # When the Submit button is clicked, submit the response
         observeEvent(input$submit, {
@@ -107,15 +132,14 @@ shinyServer(
                     shinyjs::show("thankyou_msg")
                     shinyjs::show("go_on")
                 } else {
-                    # Handle the end of the xperiment
-                    
+                    # Handle the end of the experiment
                     # Draw the round that will determine the payoff
                     isolate(values$round <- payoffRound(as.numeric(input$user)))
                     output$round <- renderText({
                         paste0("The computer selected round ", values$round, 
                                ". Because you guessed ",ifelse(values$df[values$round, 3]==true_state, "correctly ", "incorrectly "),
                                "we will add ", ifelse(values$df[values$round, 3]==true_state, prize, 0),
-                               " Euro to your show-up fee. Your total payoff will therefore equals ",
+                               " Euro to your show-up fee. Your total payoff is ",
                                ifelse(values$df[values$round, 3]==true_state, prize, 0) + show_up, " Euro.")  
                     })
                     isolate(values$df[, 5] <- ifelse(values$df[values$round, 3]==true_state, prize, 0) + show_up)
