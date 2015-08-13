@@ -5,8 +5,6 @@ source('helpers.R')
 
 shinyUI(fluidPage(
     useShinyjs(),
-    inlineCSS(appCSS),
-    
     div( 
         id = "login_page",
         titlePanel("Welcome to the experiment!"),
@@ -19,20 +17,28 @@ shinyUI(fluidPage(
                 hidden(
                     div(
                         id = "login_error",
-                        span("Your username or password is invalid. Please check for typos and try again.", style = "color:red")
+                        span("Your user name is invalid. Please check for typos and try again.", style = "color:red")
                     )
                 )
             ),
             
             mainPanel(
                 textInput("user", "User", "123"),
-                textInput("password", "Password", "password"),
+                textInput("password", "Password", ""),
                 actionButton("login", "Login", class = "btn-primary")
             )
-            
         )
     ),
     
+    hidden(
+        div( id = "instructions",
+            h3("Here we post instructions for subjects..."),
+            p("In this experiment you will have to guess the in wich direction
+              a coin that is tossed repeatedly is biased. You will observe whether
+              the coin landed heads or tails over several tosses.... Bla bla"),
+            actionButton("confirm", label = "Ok, I got it... let's start")
+        )
+    ),
     
     hidden(
         div( 
@@ -43,59 +49,40 @@ shinyUI(fluidPage(
             
                 sidebarPanel(
                     p("Indicate whether you think the coin that was tossed is more likely to land heads or tails based on the throws shown to you on the left."),
-                    checkboxGroupInput("guess", label = h3("Your guess for this round"),
-                             choices = list("Heads" = "Heads", "Tails" = "Tails"), 
-                             selected = NULL),
-                    actionButton("show_more", "Show more", class = "btn-primary"),
+                    radioButtons("guess", 
+                                 label = h3("Your based on the tosses so far"),
+                                 choices = list("Heads" = "Heads", "Tails" = "Tails"), 
+                                 selected = NULL),
                     actionButton("submit", "Submit", class = "btn-primary")
-                
                 ),
         
                 mainPanel(
-                    tabsetPanel(
-                        tabPanel("Tabelle", dataTableOutput(outputId="table")),
-                        tabPanel("Graph", plotOutput("figure"))
-                    )
-               
+                    h4(textOutput("round_info")),
+                    dataTableOutput(outputId="table")
                 )
             )
         )
     ),
     
     hidden(
-        div(
-            id = "thankyou_msg",
-            h3("Thanks, your response was submitted successfully!")
-            #uiOutput("count")
-        )
-    ),
-    
-    hidden(
-        div(
-            id = "go_on",
-            actionButton("submit_another", "Next round")
-        )
-    ),
-    
-    hidden(
-        div(
-            id = "Final_screen",
-            titlePanel("End of experiment"),
-            sidebarLayout(
-                sidebarPanel(
-                    h4("Thank you for your participation. You have reached the end of the experiment."),
-                    br(),
-                    p("You can review your answers in the table on the right."),
-                    uiOutput("round"),
-                    width = 6
-                ),
-                
-                mainPanel(
-                    dataTableOutput(outputId="results"),
-                    width = 6
-                )
+        div( 
+        id = "end",
+        titlePanel("Thank you!"),
+        
+        sidebarLayout(
+            
+            sidebarPanel(
+                p("You have reached the end of the experiment. Thank you for your participation."),
+                h4("Your payoff details:"),
+                textOutput("round")
+            ),
+            
+            mainPanel(
+                h4("Overview over your choices"),
+                dataTableOutput(outputId="results")
             )
         )
+    )
     )
 )
 )

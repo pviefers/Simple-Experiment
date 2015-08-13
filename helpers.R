@@ -8,7 +8,7 @@ fieldsMandatory <- c("guess")
 responsesDir <- file.path("responses")
 
 # Password to login for this session
-session_password <- "password"
+session_password <- "philipp"
 
 ### Generate data here
 ### 
@@ -16,18 +16,43 @@ session_password <- "password"
 ### 
 set.seed(1906)
 n_rounds <- 2
-n_flips <- 7
+n_flips <- 3
 probs <- c(0.6,0.4)
 prize <- 1
-true_state <- "Heads"
 show_up <- 10
+probas <- array(, c(n_rounds, 2))
+true_state <- sample(c("Heads", "Tails"), n_rounds, replace = TRUE)
+for(i in 1:n_rounds){
+    if(true_state[i]=="Heads"){
+        probas[i,] <- probs
+    } else {
+        probas[i,] <- probs[2:1]
+    }
+}
 
-flips <- sapply(1:n_rounds, function(x) sample(c("Heads", "Tails"), n_flips, replace = TRUE, prob = probs))
-n.heads <- apply(flips, 2, function(x) length(which(x == "Heads")))
-plot_data <- data.frame(n.coin.flips = rep(10, n_rounds), 
-                        heads = n.heads, 
-                        tails = n_flips - n.heads
-                        )
+flips <- sapply(1:n_rounds, function(x) sample(c(1, -1), n_flips, 
+                                               replace = TRUE, 
+                                               prob = probas[x, ])
+                )
+flips <- data.frame(flips)
+
+cascade <- function(x, thin){
+    tmp <- rep(1, n_flips) %x% x
+    dim(tmp) <- c(n_flips, n_flips)
+    tmp[lower.tri(tmp)] <- NA
+    tmp[tmp==1] <- "Heads"
+    tmp[tmp!="Heads"] <- "Tails"
+    if(thin > 1){
+        tmp <- tmp[, seq(1, ncol(tmp), thin)]
+    }
+    return(tmp)
+}
+
+tmp <- lapply(flips, cascade, thin = 2)
+flips <- do.call(cbind, tmp)
+
+n_guesses <- ncol(flips)
+guesses_per_round <- n_guesses/n_rounds
 
 # add an asterisk to an input label
 labelMandatory <- function(label) {
@@ -40,9 +65,13 @@ labelMandatory <- function(label) {
 # CSS to use in the app
 appCSS <-  ".mandatory_star { color: red; }
 .shiny-input-container { margin-top: 25px; }
-#submit_msg { margin-left: 15px; }
-#error { color: red; }
-#adminPanel { border: 4px solid #aaa; padding: 0 20px 20px; }"
+.shiny-progress .progress-text {
+font-size: 18px;
+top: 50% !important;
+left: 50% !important;
+margin-top: -100px !important;
+margin-left: -250px !important;
+}"
 
 # Helper functions
 humanTime <- function() format(Sys.time(), "%d-%m-%Y-%H-%M-%S")
@@ -58,7 +87,7 @@ saveData <- function(data) {
 
 payoffRound <- function(user){
     set.seed(user)
-    out <- sample(seq(1, n_rounds), 1)
+    out <- sample(seq(1, n_guesses), 1)
     return(out)
 }
 
